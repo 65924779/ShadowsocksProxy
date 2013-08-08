@@ -570,7 +570,8 @@ public class ShadowsocksProxy extends PreferenceActivity implements
 			@Override
 			public void run() {
 				
-				Utils.runRootCommand(Utils.getIptables() + " -t nat -F OUTPUT");
+				Utils.runRootCommand(Utils.getIptables() + " -t nat -F");
+				Utils.runRootCommand(Utils.getIptables() + " -F");
 				
 				Utils.runCommand(ShadowsocksProxyService.BASE + "proxy.sh stop");
 				
