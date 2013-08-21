@@ -42,7 +42,6 @@ import java.io.DataOutputStream;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.HashSet;
 
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -66,8 +65,6 @@ import android.os.PowerManager;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.widget.RemoteViews;
-
-import com.google.android.apps.analytics.GoogleAnalyticsTracker;
 
 public class ShadowsocksProxyService extends Service {
 
@@ -130,8 +127,6 @@ public class ShadowsocksProxyService extends Service {
     private boolean hasRedirectSupport = true;
 
     private boolean isGlobalProxy = false;
-
-    GoogleAnalyticsTracker tracker;
 
     private ProxyedApp apps[];
 
@@ -237,7 +232,11 @@ public class ShadowsocksProxyService extends Service {
 
             Log.e(TAG, cmd);
 
+            Utils.log(TAG, "Before run command");
+
             Utils.runRootCommand(cmd);
+
+            Utils.log(TAG, "after run command");
 
         } catch (Exception e) {
             Log.e(TAG, "Cannot connect");
@@ -260,7 +259,7 @@ public class ShadowsocksProxyService extends Service {
 
     public void handleCommand(Intent intent) {
 
-        Log.d(TAG, "Service Start");
+        Utils.log(TAG, "Service Start");
 
         if (intent == null) {
             stopSelf();
@@ -349,19 +348,28 @@ public class ShadowsocksProxyService extends Service {
             return false;
         }
 
+        Utils.log(TAG, "Before DNSServer");
         // DNS Proxy Setup
         // with AsyncHttpClient
         dnsServer = new DNSServer(this, proxy, remoteDnsPort);
         dnsPort = dnsServer.getServPort();
 
+        Utils.log(TAG, "Before preConnection");
         if (!preConnection())
             return false;
+
+        Utils.log(TAG, "after preConnection");
 
         Thread dnsThread = new Thread(dnsServer);
         dnsThread.setDaemon(true);
         dnsThread.start();
 
-        connect();
+        Utils.log(TAG, "after DNSServer and before connect");
+
+        // yowachen:preconnection里面已经调用了，这个地方不需要在调用此命令
+        // connect();
+
+        Utils.log(TAG, "******after connect");
 
         return true;
     }
@@ -434,15 +442,6 @@ public class ShadowsocksProxyService extends Service {
     public void onCreate() {
         super.onCreate();
 
-        tracker = GoogleAnalyticsTracker.getInstance();
-
-        // Start the tracker in manual dispatch mode...
-        tracker.startNewSession("UA-21682712-1", this);
-
-        tracker.trackPageView("/version-" + getVersionName());
-
-        tracker.dispatch();
-
         settings = PreferenceManager.getDefaultSharedPreferences(this);
         notificationManager = (NotificationManager) this.getSystemService(NOTIFICATION_SERVICE);
 
@@ -470,8 +469,6 @@ public class ShadowsocksProxyService extends Service {
     /** Called when the activity is closed. */
     @Override
     public void onDestroy() {
-
-        tracker.stopSession();
 
         statusLock = true;
 
@@ -580,7 +577,7 @@ public class ShadowsocksProxyService extends Service {
      */
     private boolean preConnection() {
 
-        Log.d(TAG, "Forward Successful");
+        Utils.log(TAG, "Forward Successful");
 
         Utils.runRootCommand(BASE + "proxy.sh start " + proxy + " " + passwd + " " + port);
 
@@ -632,7 +629,7 @@ public class ShadowsocksProxyService extends Service {
         String init_rules = init_sb.toString();
         Utils.runRootCommand(init_rules, 30 * 1000);
 
-        Log.i("init_rules:\r\n", init_rules);
+        Utils.log(TAG, "init_rules:\r\n" + init_rules);
 
         String redt_rules = http_sb.toString();
 
@@ -640,7 +637,7 @@ public class ShadowsocksProxyService extends Service {
 
         Utils.runRootCommand(redt_rules);
 
-        Log.i("redt_rules:\r\n", redt_rules);
+        Utils.log(TAG, "redt_rules:\r\n" + redt_rules);
 
         return true;
     }
