@@ -42,6 +42,7 @@ import java.io.DataOutputStream;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.HashSet;
 
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -597,34 +598,34 @@ public class ShadowsocksProxyService extends Service {
         init_sb.append(cmd_bypass.replace("-d 0.0.0.0", "-m owner --uid-owner "
                 + getApplicationInfo().uid));
 
-        // if (isGlobalProxy) {
-        http_sb.append(hasRedirectSupport ? Utils.getIptables()
-                + CMD_IPTABLES_REDIRECT_ADD_HTTP : Utils.getIptables()
-                + CMD_IPTABLES_DNAT_ADD_HTTP);
-        https_sb.append(hasRedirectSupport ? Utils.getIptables()
-                + CMD_IPTABLES_REDIRECT_ADD_HTTPS : Utils.getIptables()
-                + CMD_IPTABLES_DNAT_ADD_HTTPS);
-        // } else {
-        // // for proxy specified apps
-        // if (apps == null || apps.length <= 0)
-        // apps = AppManager.getProxyedApps(this);
-        // HashSet<Integer> uidSet = new HashSet<Integer>();
-        // for (int i = 0; i < apps.length; i++) {
-        // if (apps[i].isProxyed()) {
-        // uidSet.add(apps[i].getUid());
-        // }
-        // }
-        // for (int uid : uidSet) {
-        // http_sb.append((hasRedirectSupport ? Utils.getIptables()
-        // + CMD_IPTABLES_REDIRECT_ADD_HTTP : Utils.getIptables()
-        // + CMD_IPTABLES_DNAT_ADD_HTTP).replace("-t nat",
-        // "-t nat -m owner --uid-owner " + uid));
-        // https_sb.append((hasRedirectSupport ? Utils.getIptables()
-        // + CMD_IPTABLES_REDIRECT_ADD_HTTPS : Utils.getIptables()
-        // + CMD_IPTABLES_DNAT_ADD_HTTPS).replace("-t nat",
-        // "-t nat -m owner --uid-owner " + uid));
-        // }
-        // }
+        if (isGlobalProxy) {
+            http_sb.append(hasRedirectSupport ? Utils.getIptables()
+                    + CMD_IPTABLES_REDIRECT_ADD_HTTP : Utils.getIptables()
+                    + CMD_IPTABLES_DNAT_ADD_HTTP);
+            https_sb.append(hasRedirectSupport ? Utils.getIptables()
+                    + CMD_IPTABLES_REDIRECT_ADD_HTTPS : Utils.getIptables()
+                    + CMD_IPTABLES_DNAT_ADD_HTTPS);
+        } else {
+            // for proxy specified apps
+            if (apps == null || apps.length <= 0)
+                apps = AppManager.getProxyedApps(this);
+            HashSet<Integer> uidSet = new HashSet<Integer>();
+            for (int i = 0; i < apps.length; i++) {
+                if (apps[i].isProxyed()) {
+                    uidSet.add(apps[i].getUid());
+                }
+            }
+            for (int uid : uidSet) {
+                http_sb.append((hasRedirectSupport ? Utils.getIptables()
+                        + CMD_IPTABLES_REDIRECT_ADD_HTTP : Utils.getIptables()
+                        + CMD_IPTABLES_DNAT_ADD_HTTP).replace("-t nat",
+                        "-t nat -m owner --uid-owner " + uid));
+                https_sb.append((hasRedirectSupport ? Utils.getIptables()
+                        + CMD_IPTABLES_REDIRECT_ADD_HTTPS : Utils.getIptables()
+                        + CMD_IPTABLES_DNAT_ADD_HTTPS).replace("-t nat",
+                        "-t nat -m owner --uid-owner " + uid));
+            }
+        }
 
         String init_rules = init_sb.toString();
         Utils.runRootCommand(init_rules, 30 * 1000);
